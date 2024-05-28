@@ -65,7 +65,7 @@ def check_prices():
         if current_price is not None and current_price >= target_price:
             message = f'{stock_symbol} 已達到目標價格 {target_price}，目前價格為 {current_price}'
             line_bot_api.push_message(
-                'YOUR_USER_ID',  # 使用者的 LINE USER ID
+                '0965277931',  # 使用者的 LINE USER ID
                 TextSendMessage(text=message)
             )
             del target_prices[stock_symbol]  # 移除已達到目標的股票
