@@ -29,12 +29,14 @@ def callback():
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
+        app.logger.error("Invalid signature. Check your channel access token/channel secret.")
         abort(400)
 
     return 'OK'
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
+    app.logger.info("Received message: " + event.message.text)
     text = event.message.text.split()
     if len(text) == 3 and text[0].lower() == 'set':
         stock_symbol = text[1].upper()
@@ -74,4 +76,4 @@ if __name__ == "__main__":
     scheduler = BackgroundScheduler()
     scheduler.add_job(check_prices, 'interval', minutes=5)
     scheduler.start()
-    app.run()
+    app.run(debug=True)
