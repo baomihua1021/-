@@ -3,6 +3,7 @@ name: Stock Price Monitor
 on:
   schedule:
     - cron: '0 * * * *' # 每小時運行一次
+  workflow_dispatch: # 添加手動觸發
 
 jobs:
   check-stock-price:
