@@ -79,7 +79,7 @@ def check_prices():
                 message = f'{stock_symbol} 已達到目標價格 {target_price}，目前價格為 {current_price}'
                 try:
                     line_bot_api.push_message(
-                        'YOUR_USER_ID',  # 使用者的 LINE USER ID
+                        '0965277931',  # 使用者的 LINE USER ID
                         TextSendMessage(text=message)
                     )
                     logger.info("Sent notification: " + message)
