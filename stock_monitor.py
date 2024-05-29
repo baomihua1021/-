@@ -1,11 +1,15 @@
 import os
 import requests
 import yfinance as yf
-from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
-from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from linebot.exceptions import LineBotApiError
+from linebot.models import TextSendMessage
 from apscheduler.schedulers.background import BackgroundScheduler
+import logging
+from flask import Flask, request, abort
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -14,7 +18,7 @@ line_bot_api = LineBotApi(os.getenv('CHANNEL_ACCESS_TOKEN'))
 handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
 
 # 存儲目標股票代碼和目標價格
-target_prices = {}
+target_prices = {"AAPL": 150}  # 示例數據
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -66,20 +70,30 @@ def get_stock_price(stock_symbol):
     return None
 
 def check_prices():
-    app.logger.info("Checking stock prices")
+    logger.info("Checking stock prices...")
     for stock_symbol, target_price in target_prices.items():
         current_price = get_stock_price(stock_symbol)
-        if current_price is not None and current_price >= target_price:
-            message = f'{stock_symbol} 已達到目標價格 {target_price}，目前價格為 {current_price}'
-            line_bot_api.push_message(
-                '0965277931',  # 使用者的 LINE USER ID
-                TextSendMessage(text=message)
-            )
-            app.logger.info("Sent notification: " + message)
-            del target_prices[stock_symbol]  # 移除已達到目標的股票
+        if current_price is not None:
+            logger.info(f"{stock_symbol}: Current price {current_price}, Target price {target_price}")
+            if current_price >= target_price:
+                message = f'{stock_symbol} 已達到目標價格 {target_price}，目前價格為 {current_price}'
+                try:
+                    line_bot_api.push_message(
+                        'YOUR_USER_ID',  # 使用者的 LINE USER ID
+                        TextSendMessage(text=message)
+                    )
+                    logger.info("Sent notification: " + message)
+                    del target_prices[stock_symbol]  # 移除已達到目標的股票
+                except LineBotApiError as e:
+                    logger.error(f"Error sending message: {e}")
 
 if __name__ == "__main__":
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(check_prices, 'interval', minutes=5)
-    scheduler.start()
-    app.run(debug=True)
+    if os.getenv('GITHUB_ACTIONS'):
+        # 在 CI/CD 環境中，僅運行股票監控
+        check_prices()
+    else:
+        # 在開發環境中運行 Flask 伺服器和股票監控
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(check_prices, 'interval', minutes=5)
+        scheduler.start()
+        app.run(debug=True)
